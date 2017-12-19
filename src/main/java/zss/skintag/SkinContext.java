@@ -1,10 +1,10 @@
 package zss.skintag;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import zss.tool.Version;
 
-@Version("2015-04-27")
+@Version("2018.09.22")
 public class SkinContext
 {
     private static String folder = "/WEB-INF/skin";

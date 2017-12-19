@@ -3,13 +3,11 @@ package zss.skintag;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.HashMap;
-import java.util.LinkedList;
 
 import javax.servlet.ServletException;
 import javax.servlet.jsp.JspException;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.math.NumberUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,29 +15,15 @@ import zss.tool.LoggedException;
 import zss.tool.Version;
 import zss.tool.web.AbstractBodyTag;
 
-@Version("2016-03-30")
+@Version("2018.09.23")
 public class LayoutTag extends AbstractBodyTag
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(LayoutTag.class);
-    private static final StackLocal STACK = new StackLocal();
 
     private final ContentMap contents = new ContentMap();
 
     private String name;
     private String set;
-
-    static LayoutTag getLayout(final String stack)
-    {
-        final LayoutStack list = STACK.get();
-        if (list.isEmpty())
-        {
-            return null;
-        }
-        int index = NumberUtils.toInt(stack, 0);
-        index = Math.max(0, index);
-        index = Math.min(index, list.size() - 1);
-        return list.get(index);
-    }
 
     public void setSet(final String set)
     {
@@ -107,19 +91,15 @@ public class LayoutTag extends AbstractBodyTag
             LOGGER.error(e.getMessage(), e);
             throw new LoggedException();
         }
-        final LayoutStack stack = STACK.get();
+        final LayoutStack stack = LayoutStack.getInstance(this);
         stack.removeFirst();
-        if (stack.isEmpty())
-        {
-            STACK.remove();
-        }
         return EVAL_PAGE;
     }
 
     @Override
     public int doStartTag() throws JspException
     {
-        STACK.get().addFirst(this);
+        LayoutStack.getInstance(this).addFirst(this);
         return EVAL_BODY_BUFFERED;
     }
 
@@ -136,21 +116,5 @@ public class LayoutTag extends AbstractBodyTag
     private static class ContentMap extends HashMap<String, String>
     {
         private static final long serialVersionUID = 20131225222128432L;
-    }
-
-    @Version("2016-03-30")
-    private static class StackLocal extends ThreadLocal<LayoutStack>
-    {
-        @Override
-        protected LayoutStack initialValue()
-        {
-            return new LayoutStack();
-        }
-    }
-
-    @Version("2016-03-30")
-    private static class LayoutStack extends LinkedList<LayoutTag>
-    {
-        private static final long serialVersionUID = 20160330230332873L;
     }
 }

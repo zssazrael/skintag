@@ -5,6 +5,7 @@ import java.io.StringWriter;
 
 import javax.servlet.jsp.JspException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,12 +13,23 @@ import zss.tool.LoggedException;
 import zss.tool.Version;
 import zss.tool.web.AbstractBodyTag;
 
-@Version("2016-03-30")
+@Version("2018.09.23")
 public class SetTag extends AbstractBodyTag
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(SetTag.class);
 
     private String name;
+    private String from;
+    private String content;
+    private int stack;
+
+    public void setFrom(String from) {
+        this.from = from;
+    }
+
+    public void setStack(int stack) {
+        this.stack = stack;
+    }
 
     public void setName(final String name)
     {
@@ -25,9 +37,11 @@ public class SetTag extends AbstractBodyTag
     }
 
     @Override
-    public void release()
-    {
+    public void release() {
         name = null;
+        from = null;
+        content = null;
+        stack = 0;
         super.release();
     }
 
@@ -37,24 +51,17 @@ public class SetTag extends AbstractBodyTag
     }
 
     @Override
-    public int doAfterBody() throws JspException
-    {
+    public int doAfterBody() throws JspException {
         final StringWriter writer = new StringWriter(4096);
-        try
-        {
+        try {
             bodyContent.writeOut(writer);
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             LOGGER.error(e.getMessage(), e);
             throw new LoggedException();
-        }
-        finally
-        {
+        } finally {
             bodyContent.clearBody();
         }
-        final LayoutTag tag = (LayoutTag) getParent();
-        tag.setContent(name, writer.toString());
+        content = writer.toString();
         return SKIP_BODY;
     }
 
@@ -69,8 +76,17 @@ public class SetTag extends AbstractBodyTag
     }
 
     @Override
-    public int doEndTag() throws JspException
-    {
+    public int doEndTag() throws JspException {
+        final LayoutTag tag = (LayoutTag) getParent();
+        if (StringUtils.isEmpty(from)) {
+            tag.setContent(name, StringUtils.defaultString(content));
+        } else {
+            final LayoutTag fromTag = LayoutStack.getInstance(this).get(stack);
+            if (fromTag != null) {
+                final String content = StringUtils.defaultString(fromTag.getContent(from));
+                tag.setContent(name, content);
+            }
+        }
         return EVAL_PAGE;
     }
 }
